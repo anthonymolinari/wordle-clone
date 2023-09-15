@@ -2,44 +2,40 @@ import {Fragment} from "react";
 import {Box, Stack, Typography} from "@mui/material";
 
 const Key = (props) => {
-    const { val, onClick } = props;
+    const { keyboardAttr, onClick } = props;
 
     return (
             <Box sx={{
                 height: 58,
-                width: ( val.length > 1 ? 75 : 50 ),
-                backgroundColor: 'lightgrey',
-                color: 'black',
+                width: ( keyboardAttr.letter.length > 1 ? 75 : 50 ),
+                backgroundColor: keyboardAttr.backgroundColor,
+                color: keyboardAttr.color,
                 alignItems: 'center',
                 textAlign: 'center',
-                fontFamily: "nyt-franklin",
                 fontSize: "1.25em",
                 fontWeight: "bold",
                 textTransform: "uppercase",
                 cursor: 'pointer',
                 userSelect: 'none',
+                borderColor: keyboardAttr.borderColor,
+                border: 'medium',
+                borderRadius: '5px',
             }} onClick={onClick}>
                 <Typography sx={{
                     mt: 2
-                }}> {val} </Typography>
+                }}> {keyboardAttr.letter} </Typography>
             </Box>
     )
 }
 
 const Keyboard = (props) => {
 
-    const { onClickHandler } = props;
-    
-    const alpha = {
-        top: ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
-        middle: ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
-        bottom: ['enter', 'z', 'x', 'c', 'v', 'b', 'n', 'm', 'del']
-    };
+    const { onClickHandler, keyboard } = props;
 
     return (
         <Fragment>
             <Box sx={{
-                height: 400,
+                height: 300,
                 alignItems: "center",
                 display: 'flex',
                 flexDirection: 'column',
@@ -51,13 +47,13 @@ const Keyboard = (props) => {
                     justifyItems: 'center',
                 }}>
                 <Stack spacing={1} direction='row'>
-                    {alpha.top.map( key  => (<Key onClick={() => onClickHandler(key)} key={`top-${key}`} val={key} />) )} 
+                    {keyboard.slice(0,10).map( key  => (<Key onClick={() => onClickHandler(key)} key={`top-${key.letter}`} keyboardAttr={key} />) )} 
                 </Stack>
                  <Stack spacing={1} direction='row'>
-                    {alpha.middle.map( key  => (<Key onClick={() => onClickHandler(key)} key={`top-${key}`} val={key} />) )} 
+                    {keyboard.slice(10,19).map( key  => (<Key onClick={() => onClickHandler(key)} key={`mid-${key.letter}`} keyboardAttr={key} />) )} 
                 </Stack>
                  <Stack spacing={1} direction='row'>
-                    {alpha.bottom.map( key  => (<Key onClick={() => onClickHandler(key)} key={`top-${key}`} val={key} />) )} 
+                    {keyboard.slice(19,28).map( key  => (<Key onClick={() => onClickHandler(key)} key={`bot-${key.letter}`} keyboardAttr={key} />) )} 
                 </Stack>
             </Stack>
             </Box>

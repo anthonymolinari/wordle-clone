@@ -1,4 +1,4 @@
-import {Fragment, useState, useEffect} from "react";
+import {Fragment, useState} from "react";
 
 import Keyboard from "./pages/Keyboard";
 import GuessArea from "./pages/GuessArea";
@@ -6,117 +6,231 @@ import TopBanner from "./pages/TopBanner";
 import MsgCenter from "./pages/MsgCenter";
 import {Box} from "@mui/material";
 
-import dim from "./utils/dimensions";
+import {
+    randomWord,
+    validateWord,
+    getIndeciesOf,
+} from './utils/utils';
 
-import words from './utils/fiveLetterWords';
+import {
+    numGuessAreaRows,
+    numGuessAreaColumns,
+    guessContainer
+} from './utils/sizes';
 
-// return true if guess is in word list
-const validateWord = (guess) => {
-    for ( let word of words ) {
-        if ( word === guess ) 
-            return true;
-    }
-    return false;
-}
+import { boxStyleVariants, messageBoxStyles } from './utils/keyboardAndGuessAreaBoxTypes';
 
 function App() {
 
-    const [ secretWord, setSecretWord ] = useState(''); 
-
+    const [ secretWord, setSecretWord ] = useState(randomWord);
+    const [ message, setMessage ] = useState({
+        msg: ""
+    });
     const [ activeCell, setActiveCell ] = useState(0);
-    const [ message, setMessage ] = useState('');
-
     const [ completedRows, setCompletedRows ] = useState([]);
+    const [ disable, setDisable ] = useState(false);
+    
 
-    const [ activeRow, setActiveRow ] = useState( new Array(dim.numGCols).fill({
-        backgroundColor: 'white',
-        value: "",
-    }));
+    const keyboardAlpha = [
+        'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p',
+        'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l',
+        'enter', 'z', 'x', 'c', 'v', 'b', 'n', 'm', 'del'
+    ];
 
-    const [ remainingRows, setRemainRows ] = useState( new Array((dim.numGRows - 1) * dim.numGCols)
-        .fill({
-            backgroundColor: 'white'
-        }));
+    const initKeyboard = () => {
+        let keys = keyboardAlpha.map( letter => {
+            if ( letter === 'enter' ) 
+                return {
+                    ...boxStyleVariants.keyboardUnusedKey,
+                    letter: letter,
+                    isEnterKey: true,
+                };
+            if ( letter === 'del' )
+                return {
+                    ...boxStyleVariants.keyboardUnusedKey,
+                    letter: letter,
+                    isBackspaceKey: true,
+                };
+            return {
+                ...boxStyleVariants.keyboardUnusedKey,
+                letter: letter,
+            };
+        })
+        
+        return keys;
+    }
+
+    const initActiveRow = () => new Array(numGuessAreaColumns).fill({
+            ...boxStyleVariants.blankBox, 
+            value: ""
+    });
+
+    const initRemainingRows = () => {
+        return new Array( 
+            (numGuessAreaColumns * (numGuessAreaRows-1)) - (completedRows.length) )
+            .fill(boxStyleVariants.blankBox);
+    }
+    const updateRemainingRows = () => {
+        return new Array( 
+            (numGuessAreaColumns * (numGuessAreaRows-2)) - (completedRows.length) )
+            .fill(boxStyleVariants.blankBox);
+    }
+
+    const [ keyboard, setKeyboard ] = useState(initKeyboard);
+
+    const [ activeRow, setActiveRow ] = useState(initActiveRow);
+
+    const [ remainingRows, setRemainRows ] = useState(initRemainingRows)
 
     const allRows = [...completedRows, ...activeRow, ...remainingRows];
 
-    useEffect(() => {
-        const idx = Math.floor(Math.random() * words.length);
-        console.log(`the word to guess is ${words[idx]}`);
-        setSecretWord(words[idx]);
-    }, []);
+    
+    const keyBoardHandler = (key) => {
+        if ( disable )
+            return;
 
-    const keyBoardHandler = (value) => {
-        const newActiveRow = activeRow.slice();
+        if ( key.isBackspaceKey && activeCell === 0)
+            return; // activeRow is empty as such, there are no letters to erase
         
-        if ( value === 'del' ) {
-            if (activeCell < 1)
-                return;
-
+        if ( key.isBackspaceKey ) {
+            const newActiveRow = activeRow.slice();
             newActiveRow[activeCell-1] = {
                 ...newActiveRow[activeCell-1],
                 value: '',
                 active: false,
             };
             setActiveRow(newActiveRow);
-            if ( activeCell > 0 ) {
-                setActiveCell(activeCell-1);
-            }
+            setActiveCell(activeCell-1);
             return;
         }
-            
-        if ( value === 'enter' ) {
+
+        if ( activeCell === numGuessAreaColumns && key.isEnterKey) {
+            // evaluate user's work that is now in activeRow. The feedback boxes
+            // get stored in a 5 element array and get pushed into the completedRows.
+            // the activeRow gets reset to 5 blank boxes.
+            // if the remainingRows is empty, game is over. Display a message in the message center.
+            let newActiveRow = activeRow.slice();
+            let newKeyboard = keyboard.slice();
             const guess = newActiveRow.map( cell => cell.value ).join('');
-            // send msg to msgCenter
             if (!validateWord(guess)) {
-                messageTimer(`${guess} is NOT in the word list`);
+                messageTimer(`${guess} is NOT in the word list`, messageBoxStyles.error);
                 return;
             }
 
-            // compare against goal word
-            // if match -> win
-            if (guess === secretWord)
-                messageTimer(`CORRECT, ${guess} is the answer!`);
+            if (guess === secretWord) {
+                newActiveRow = newActiveRow.map( elm => ({
+                    ...elm,
+                    ...boxStyleVariants.exactMatch,
+                }));
+                setMessage({
+                    msg: `CORRECT, ${guess} is the answer!`, 
+                    style: messageBoxStyles.win,
+                });
+                setDisable(true);
+            }
+            else {
+                let exactMatches = new Array(5).fill(false);
+                // color the guess boxes and keyboard
+                // first find the exact matches
+                for ( let i = 0; i < newActiveRow.length; i++ ) {
+                    if ( newActiveRow[i].value === secretWord[i] ) {
+                        exactMatches[i] = true;
+                        newActiveRow[i] = {...newActiveRow[i], ...boxStyleVariants.exactMatch};
+                        let idx = keyboardAlpha.indexOf(newActiveRow[i].value);
+                        newKeyboard[idx] = {
+                            ...newKeyboard[idx],
+                            ...boxStyleVariants.exactMatch,
+                        };
+                    }
+                }
+                for ( let i = 0; i < newActiveRow.length; i++ ) {
+                    if ( exactMatches[i] )
+                        continue;
+
+                    let j = secretWord.indexOf(newActiveRow[i].value);
+                    
+                    // check if letter has been exactly matched
+                    if ( exactMatches[j] ) {
+                        // check if there is another instance of the letter that 
+                        // hasn't been matched 
+                        let idxs = getIndeciesOf(secretWord.split(""), newActiveRow[i].value);
+                        console.log(idxs);
+                        if ( idxs.length > 1 ) {
+                            idxs.forEach( k => {
+                                if ( k !== j ) {
+                                    newActiveRow[i] = {...newActiveRow[i], ...boxStyleVariants.partialMatch};
+                                }
+                            });
+                        } else {
+                            newActiveRow[i] = {...newActiveRow[i], ...boxStyleVariants.noMatch};
+                        }
+                    }
+                    else if ( j > -1 ) {
+                        newActiveRow[i] = {...newActiveRow[i], ...boxStyleVariants.partialMatch};
+                        let idx = keyboardAlpha.indexOf(newActiveRow[i].value);
+                        newKeyboard[idx] = {
+                            ...newKeyboard[idx],
+                            ...boxStyleVariants.partialMatch,
+                        };
+                    }
+                    else {
+                        newActiveRow[i] = {...newActiveRow[i], ...boxStyleVariants.noMatch};
+                        let idx = keyboardAlpha.indexOf(newActiveRow[i].value);
+                        newKeyboard[idx] = {
+                            ...newKeyboard[idx],
+                            ...boxStyleVariants.noMatch,
+                        };
+                    }
+                }                   
+            } 
             
             if (completedRows.length === 25) {
-                messageTimer(`Game OVER, ${guess} was inncorrect`);
-                return 
+                setMessage({ 
+                    msg: `Game OVER, the secret word was ${secretWord}`, 
+                    style: messageBoxStyles.loss
+                });
+                setDisable(true);
+
+                setCompletedRows([...completedRows, ...newActiveRow]);
+                setKeyboard(newKeyboard);
+                setActiveRow([]);
+                setRemainRows([]);
+                return;
             }
-            
+
             setCompletedRows([...completedRows, ...newActiveRow]);
-            // new active row
-            setActiveRow(new Array(dim.numGCols).fill({
-                backgroundColor: 'white',
-                value: "",
-            }));
-
-            setRemainRows(new Array((dim.numGRows - (completedRows.length / 5) - 2) * dim.numGCols).fill({
-                backgroundColor: 'blue'
-            }));
-
+            setKeyboard(newKeyboard);
+            setActiveRow(initActiveRow);
+            setRemainRows(updateRemainingRows);
             setActiveCell(0);
-
-            console.log(allRows);
 
             return;
         }
+
+        if ( key.isEnterKey ) {
+            // ignore the enter key as there are not enough letters in active row
+            return;
+        }
+
+        if ( activeCell === numGuessAreaColumns ) {
+            // activeRow is already full.
+            return;
+        }
         
-        newActiveRow[activeCell] = {
-            ...newActiveRow[activeCell],
-            value: value,
-            active: true,
-        };
+        const newActiveRow = activeRow.slice();
+        newActiveRow[activeCell] = {...boxStyleVariants.notEvaluated, value: key.letter};
         setActiveRow(newActiveRow);
-        if ( activeCell < 4 )
-            setActiveCell(activeCell+1);
+        setActiveCell(activeCell+1);
     }
 
-    const messageTimer = async (msg_string) => {
-        setMessage(msg_string);
+    const messageTimer = async (msg_string, style) => {
+        setMessage({
+            msg: msg_string,
+            style: style,
+        });
         // have messages dissapear after a set timer
-        setTimeout(() => setMessage(''), 4 * 1000);
+        setTimeout(() => setMessage({msg: ""}), 5 * 1000);
     }
-
 
     return (
     <Fragment>
@@ -124,9 +238,8 @@ function App() {
       <Box
           margin="auto"
           sx={{
-            //height: dim.numGRows * dim.height + (dim.numGRows - 1) * dim.vGap + dim.topBannerHeight + dim.keyboardHeight,
-            height: 500, // generate dynamically using dimensions object
-            width: dim.numGCols * dim.width + (dim.numGCols -1 ) * dim.hGap,
+            height: guessContainer.height, 
+            width: guessContainer.width,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -134,11 +247,10 @@ function App() {
 
       }}
       >
-      
       <GuessArea allRows={allRows} />
       <MsgCenter message={message} />
       </Box>
-      <Keyboard onClickHandler={(value) => keyBoardHandler(value)} />
+      <Keyboard keyboard={keyboard} onClickHandler={keyBoardHandler} />
     </Fragment>
   );
 }

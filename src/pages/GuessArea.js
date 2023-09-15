@@ -3,7 +3,10 @@ import {Grid} from "@mui/material";
 import {Box} from "@mui/material";
 import {Fragment} from "react";
 
-import dim from '../utils/dimensions';
+import {
+    numGuessAreaColumns,
+    guessBoxSizes,
+} from '../utils/sizes';
 
 const GuessBox = (props) => {
 
@@ -12,8 +15,8 @@ const GuessBox = (props) => {
     return (
         <Box
             sx={{
-                width: dim.width,
-                height: dim.height,
+                width: guessBoxSizes.width,
+                height: guessBoxSizes.height,
                 border: 1,
                 borderColor: (active ? 'black': 'lightgrey'),
                 m: 0.4,
@@ -40,7 +43,7 @@ const GuessArea = (props) => {
 
     return (
         <Fragment>
-            <Grid container columns={dim.numGCols}>
+            <Grid container columns={numGuessAreaColumns}>
                 {allRows.map( (box, idx) =>
                     <Grid key={idx} item xs={1} sx={{
                         margin: 0, 
