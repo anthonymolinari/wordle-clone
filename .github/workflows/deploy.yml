@@ -13,5 +13,4 @@ jobs:
     steps:
       - name: 'depoy to docker host via ssh'
         run: |
-          echo "deploying to local infra"
           docker run -d --name word-guess -p 3210:3000 anthonymolinari/word-guess:latest
