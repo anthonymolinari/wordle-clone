@@ -13,4 +13,7 @@ jobs:
     steps:
       - name: 'depoy to docker host via ssh'
         run: |
+          docker container stop word-guess
+          docker container rm word-guess
+          docker image rm word-guess:latest
           docker run -d --name word-guess -p 3210:3000 anthonymolinari/word-guess:latest
