@@ -24,7 +24,7 @@ const TopBanner = () => {
                         <MenuIcon />
                     </IconButton>
                     <Typography variant="h6" component="div" sx={{ flexGrow: 1, ml: 13, fontWeight: 'bold' }}>
-                        WORD-GUESS
+                        WORDLE
                     </Typography>
                     <IconButton
                         size="medium"
