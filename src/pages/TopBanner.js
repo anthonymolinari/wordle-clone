@@ -23,8 +23,8 @@ const TopBanner = () => {
                         sx={{ mr: 2 }}>
                         <MenuIcon />
                     </IconButton>
-                    <Typography variant="h6" component="div" sx={{ flexGrow: 1, ml: 13, fontWeight: 'bold' }}>
-                        WORDLE
+                    <Typography variant="h6" component="div" sx={{ flexGrow: 1, ml: 13, fontWeight: 'bold', textTransform: 'uppercase' }}>
+                        word-guess
                     </Typography>
                     <IconButton
                         size="medium"
