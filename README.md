@@ -1,6 +1,6 @@
 # Wordle Clone
 
-![alt text](https://github.com/anthonymolinari/wordle-clone/blob/main/images/screenshot_02.png?raw=true)
+![alt text](https://github.com/anthonymolinari/wordle-clone/blob/main/docs/images/screenshot_02.png?raw=true)
 
 ## Run with docker
 ```
